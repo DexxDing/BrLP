@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
-from torch.cuda.amp import autocast, GradScaler
+from torch.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from monai import transforms
 from monai.utils import set_determinism
@@ -22,6 +22,7 @@ from brlp import (
     sample_using_diffusion
 )
 
+import pdb
 
 set_determinism(0)
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -106,6 +107,8 @@ if __name__ == '__main__':
     trainset = get_dataset_from_pd(train_df, transforms_fn, args.cache_dir)
     validset = get_dataset_from_pd(valid_df, transforms_fn, args.cache_dir)
 
+
+
     train_loader = DataLoader(dataset=trainset, 
                               num_workers=args.num_workers, 
                               batch_size=args.batch_size, 
@@ -135,8 +138,10 @@ if __name__ == '__main__':
     scaler = GradScaler()
     
     with torch.no_grad():
-        with autocast(enabled=True):
+        with autocast('cuda'):
             z = trainset[0]['latent']
+
+            
             
     scale_factor = 1 / torch.std(z)
     print(f"Scaling factor set to {scale_factor}")
@@ -159,7 +164,7 @@ if __name__ == '__main__':
             
             for step, batch in progress_bar:
                             
-                with autocast(enabled=True):    
+                with autocast('cuda'):    
                         
                     if mode == 'train': optimizer.zero_grad(set_to_none=True)
                     latents = batch['latent'].to(DEVICE) * scale_factor

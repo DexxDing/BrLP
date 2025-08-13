@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.cuda.amp.autocast_mode import autocast
+from torch.amp import autocast
 from generative.networks.schedulers import DDIMScheduler
 from tqdm import tqdm
 
@@ -61,7 +61,7 @@ def sample_using_diffusion(
     progress_bar = tqdm(scheduler.timesteps) if verbose else scheduler.timesteps
     for t in progress_bar:
         with torch.no_grad():
-            with autocast(enabled=True):
+            with autocast('cuda'):
 
                 timestep = torch.tensor([t]).to(device)
                 
@@ -143,7 +143,9 @@ def sample_using_controlnet_and_z(
 
     # the subject-specific variables and the progression-related 
     # covariates are concatenated into a vector outside this function. 
-    context = context.unsqueeze(0).unsqueeze(0).to(device)
+    # context = context.unsqueeze(0).unsqueeze(0).to(device)
+    context = context.unsqueeze(0).to(device)
+    # print(context.shape)
 
     # if performing LAS, we repeat the inputs for the diffusion process
     # m times (as specified in the paper) and perform the reverse diffusion
@@ -159,7 +161,7 @@ def sample_using_controlnet_and_z(
 
     for t in progress_bar:
         with torch.no_grad():
-            with autocast(enabled=True):
+            with autocast('cuda'):
 
                 # convert the timestep to a tensor.
                 timestep = torch.tensor([t]).repeat(average_over_n).to(device)

@@ -59,8 +59,9 @@ def make_csv_B(df):
                 record = { 'subject_id': s_rec.subject_id, 'sex': s_rec.sex, 'split': s_rec.split }
                 remaining_columns = set(df.columns).difference(set(record.keys()))
                 for column in remaining_columns:
-                    record[f'starting_{column}'] = s_rec[column]
-                    record[f'followup_{column}'] = e_rec[column]
+                    column_base = column[:-5] if column.endswith('_path') else column
+                    record[f'starting_{column_base}'] = s_rec[column]
+                    record[f'followup_{column_base}'] = e_rec[column]
                 data.append(record)
     return pd.DataFrame(data)
 

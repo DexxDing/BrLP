@@ -10,7 +10,8 @@ from monai.utils import set_determinism
 
 from torch.nn import L1Loss
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast, GradScaler
+from torch.amp import GradScaler
+from torch import autocast
 from generative.losses import PerceptualLoss, PatchAdversarialLoss
 from torch.utils.tensorboard import SummaryWriter
 
@@ -25,6 +26,7 @@ from brlp import (
 
 set_determinism(0)
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 
 
 if __name__ == '__main__':
@@ -50,8 +52,10 @@ if __name__ == '__main__':
         transforms.EnsureChannelFirstD(keys=['image']), 
         transforms.SpacingD(pixdim=const.RESOLUTION, keys=['image']),
         transforms.ResizeWithPadOrCropD(spatial_size=const.INPUT_SHAPE_AE, mode='minimum', keys=['image']),
-        transforms.ScaleIntensityD(minv=0, maxv=1, keys=['image'])
-    ])
+        transforms.ScaleIntensityD(minv=0, maxv=1, keys=['image']),
+        transforms.Lambda(lambda d: {'image': torch.as_tensor(d['image'])})  # Ensure tensor and single key
+        ])
+
 
     dataset_df = pd.read_csv(args.dataset_csv)
     train_df = dataset_df[ dataset_df.split == 'train' ]
@@ -111,7 +115,7 @@ if __name__ == '__main__':
 
         for step, batch in progress_bar:
 
-            with autocast(enabled=True):
+            with torch.autocast(device_type="cuda"):
 
                 images = batch["image"].to(DEVICE)
                 reconstruction, z_mu, z_sigma = autoencoder(images)
@@ -136,7 +140,7 @@ if __name__ == '__main__':
                 
             gradacc_g.step(loss_g, step)
 
-            with autocast(enabled=True):
+            with torch.autocast(device_type="cuda"):
 
                 # Here we compute the loss for the discriminator. Keep in mind that
                 # the loss used is an MSE between the output logits and the expected logits.

@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 import nibabel as nib
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast, GradScaler
+from torch.amp import autocast, GradScaler
 from torch.utils.tensorboard import SummaryWriter
 from monai import transforms
 from monai.data.image_reader import NumpyReader
@@ -164,7 +164,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.AdamW(controlnet.parameters(), lr=args.lr)
 
     with torch.no_grad():
-        with autocast(enabled=True):
+        with autocast('cuda'):
             z = trainset[0]['followup_latent']
 
     scale_factor = 1 / torch.std(z)
@@ -206,7 +206,7 @@ if __name__ == '__main__':
 
                     n = starting_z.shape[0] 
 
-                    with autocast(enabled=True):
+                    with autocast('cuda'):
 
                         concatenating_age      = starting_a.view(n, 1, 1, 1, 1).expand(n, 1, *starting_z.shape[-3:])
                         controlnet_condition   = torch.cat([ starting_z, concatenating_age ], dim=1)
